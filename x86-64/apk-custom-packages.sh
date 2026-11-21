@@ -33,8 +33,7 @@ CUSTOM_PACKAGES="$CUSTOM_PACKAGES luci-app-ddns-go luci-i18n-ddns-go-zh-cn"
 CUSTOM_PACKAGES="$CUSTOM_PACKAGES luci-app-bandix luci-i18n-bandix-zh-cn bandix"
 CUSTOM_PACKAGES="$CUSTOM_PACKAGES luci-app-uninstall"
 
-# ---- AdGuard Home Lite（本地 apk，来源 Ozero-top/luci-app-adguardhome-lite dist）----
-CUSTOM_PACKAGES="$CUSTOM_PACKAGES luci-app-adguardhome-lite"
+# ---- AdGuard Home Lite 使用 apk v2 格式，改为文件覆盖集成，不进入本地 apk 索引 ----
 
 # ---- AdGuard Home Lite 与部分旧版 LuCI 插件所需依赖 ----
 CUSTOM_PACKAGES="$CUSTOM_PACKAGES luci-compat luci-lib-jsonc luci-lua-runtime curl ca-bundle wget-ssl"

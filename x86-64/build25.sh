@@ -43,10 +43,39 @@ else
   ls -lah /home/build/immortalwrt/packages/
 fi
 
-# 复制 x86-64 专用的本地 apk（Vantage / AdGuard Home Lite / uninstall）
+# 复制 x86-64 专用的本地 apk（Vantage / uninstall）
 if [ -d x86-apk-extra ]; then
     mkdir -p /home/build/immortalwrt/packages
-    cp -v x86-apk-extra/*.apk /home/build/immortalwrt/packages/ 2>/dev/null || true
+    for f in x86-apk-extra/*.apk; do
+        [ -e "$f" ] || continue
+        case "$f" in
+            *luci-app-adguardhome-lite*) continue ;;  # apk v2，改为文件覆盖
+        esac
+        cp -v "$f" /home/build/immortalwrt/packages/
+    done
+
+    # AdGuard Home Lite 的 apk 是 v2 格式，25.12 的 mkndx 无法索引，直接铺进 rootfs
+    ADG_APK=$(ls x86-apk-extra/luci-app-adguardhome-lite*.apk 2>/dev/null | head -n1)
+    if [ -n "$ADG_APK" ]; then
+        rm -rf /tmp/adg-lite-overlay
+        mkdir -p /tmp/adg-lite-overlay
+        tar -xzf "$ADG_APK" -C /tmp/adg-lite-overlay
+        for d in etc usr www lib; do
+            [ -d "/tmp/adg-lite-overlay/$d" ] && cp -a "/tmp/adg-lite-overlay/$d" /home/build/immortalwrt/files/
+        done
+        echo "✅ AdGuard Home Lite 已作为文件覆盖集成"
+    fi
+
+    # 显式生成本地 apk 索引，避免 Makefile 静默失败后所有本地包都找不到
+    APK_BIN=""
+    [ -x "$PWD/staging_dir/host/bin/apk" ] && APK_BIN="$PWD/staging_dir/host/bin/apk"
+    [ -z "$APK_BIN" ] && command -v apk >/dev/null 2>&1 && APK_BIN="$(command -v apk)"
+    echo "APK_BIN=$APK_BIN"
+    if [ -n "$APK_BIN" ]; then
+        ( cd /home/build/immortalwrt/packages && "$APK_BIN" mkndx --allow-untrusted --output packages.adb *.apk )
+        echo "package index exit=$?"
+    fi
+
     echo "✅ 已加入 x86-64 专用 apk:"
     ls -lah /home/build/immortalwrt/packages/
 fi
