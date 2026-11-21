@@ -2,6 +2,10 @@
 # Log file for debugging
 # 目前支持少部分第三方软件apk 通过打开shell/apk-custom-packages.sh的注释来集成
 source shell/apk-custom-packages.sh
+# x86-64 专用包清单（由工作流挂载到容器根目录）
+if [ -f x86-apk-packages.sh ]; then
+  source x86-apk-packages.sh
+fi
 echo "第三方apk软件包: $CUSTOM_PACKAGES"
 LOGFILE="/tmp/uci-defaults-log.txt"
 echo "Starting 99-custom.sh at $(date)" >> $LOGFILE
@@ -37,6 +41,14 @@ else
   # 解压并拷贝apk到packages目录
   sh shell/apk-prepare-packages.sh
   ls -lah /home/build/immortalwrt/packages/
+fi
+
+# 复制 x86-64 专用的本地 apk（Vantage / AdGuard Home Lite / uninstall）
+if [ -d x86-apk-extra ]; then
+    mkdir -p /home/build/immortalwrt/packages
+    cp -v x86-apk-extra/*.apk /home/build/immortalwrt/packages/ 2>/dev/null || true
+    echo "✅ 已加入 x86-64 专用 apk:"
+    ls -lah /home/build/immortalwrt/packages/
 fi
 
 

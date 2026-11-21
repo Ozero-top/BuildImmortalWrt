@@ -1,0 +1,51 @@
+#!/bin/sh
+# ============================================================
+# ZeroWrt 系统标识（仅 x86-64 / 25.12.x 工作流挂载）
+# 首次启动时执行一次：替换系统版本信息、banner 与主机名
+# ============================================================
+
+NEW_NAME="ZeroWrt"
+LOG_FILE="/etc/config/zerowrt-branding.log"
+echo "Starting ZeroWrt branding at $(date)" >>"$LOG_FILE"
+
+# 先整体替换 release / os-release 中的 ImmortalWrt 字样
+for f in /etc/openwrt_release /etc/os-release; do
+    [ -f "$f" ] || continue
+    sed -i "s/ImmortalWrt/$NEW_NAME/g" "$f"
+done
+
+# 读取版本号，重写发行版标识
+VER="25.12"
+if [ -f /etc/openwrt_release ]; then
+    # shellcheck disable=SC1091
+    . /etc/openwrt_release
+    [ -n "$DISTRIB_RELEASE" ] && VER="$DISTRIB_RELEASE"
+    sed -i "s/^DISTRIB_ID=.*/DISTRIB_ID='$NEW_NAME'/" /etc/openwrt_release
+    sed -i "s/^DISTRIB_DESCRIPTION=.*/DISTRIB_DESCRIPTION='$NEW_NAME $VER'/" /etc/openwrt_release
+fi
+
+if [ -f /etc/os-release ]; then
+    sed -i "s/^NAME=.*/NAME=\"$NEW_NAME\"/" /etc/os-release
+    sed -i "s/^PRETTY_NAME=.*/PRETTY_NAME=\"$NEW_NAME $VER\"/" /etc/os-release
+fi
+
+# 登录 banner
+if [ -f /etc/banner ]; then
+    sed -i "s/ImmortalWrt/$NEW_NAME/g" /etc/banner
+fi
+
+# 主机名
+uci -q set system.@system[0].hostname="$NEW_NAME"
+uci -q commit system
+
+# 代理工具只安装、不随系统启动；需要时由用户在 LuCI 中手动启用
+for svc in openclash passwall passwall2 ssr-plus clashoo; do
+    if [ -x "/etc/init.d/$svc" ]; then
+        /etc/init.d/"$svc" stop >/dev/null 2>&1
+        /etc/init.d/"$svc" disable >/dev/null 2>&1
+        echo "Disabled service: $svc" >>"$LOG_FILE"
+    fi
+done
+
+echo "ZeroWrt branding completed at $(date)" >>"$LOG_FILE"
+exit 0
